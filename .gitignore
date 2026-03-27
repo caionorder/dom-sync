@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+dom_processing.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Service account keys
+*.json
+!package.json
+
+# Distribution
+*.tar.gz
+*.whl
