@@ -32,9 +32,7 @@ class MongoDB:
                     maxPoolSize=MongoDBConfig.MAX_POOL_SIZE,
                     minPoolSize=MongoDBConfig.MIN_POOL_SIZE,
                     connectTimeoutMS=MongoDBConfig.CONNECT_TIMEOUT_MS,
-                    serverSelectionTimeoutMS=MongoDBConfig.SERVER_SELECTION_TIMEOUT_MS,
-                    tls=True,
-                    tlsAllowInvalidCertificates=True
+                    serverSelectionTimeoutMS=MongoDBConfig.SERVER_SELECTION_TIMEOUT_MS
                 )
                 cls._client.server_info()
                 logger.info("Conectado ao MongoDB com sucesso")
