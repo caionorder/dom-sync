@@ -15,6 +15,8 @@ class ReportType:
 
 def parse_day_parameter(day):
     """Parse do parametro day, suportando formatos dinamicos como last_X_days"""
+    if day is None:
+        day = "today"
     if day == "yesterday":
         return ReportType(start=1, end=1)
     elif day == "today":

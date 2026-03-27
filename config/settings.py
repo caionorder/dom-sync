@@ -27,7 +27,15 @@ class ConfigSingleton:
         self.MONGO_DB = os.getenv('MONGO_DB', 'admanager')
         self.MONGO_USER = os.getenv('MONGO_USER', 'joinads')
         self.MONGO_PASSWORD = os.getenv('MONGO_PASSWORD', 'joinads')
-        self.MONGODB_URI = f'mongodb+srv://{self.MONGO_USER}:{self.MONGO_PASSWORD}@{self.MONGO_HOST}'
+        self.MONGO_AUTH_SOURCE = os.getenv('MONGO_AUTH_SOURCE', 'admin')
+        self.MONGO_REPLICA_SET = os.getenv('MONGO_REPLICA_SET', '')
+
+        replica_param = f'&replicaSet={self.MONGO_REPLICA_SET}' if self.MONGO_REPLICA_SET else ''
+        self.MONGODB_URI = (
+            f'mongodb://{self.MONGO_USER}:{self.MONGO_PASSWORD}'
+            f'@{self.MONGO_HOST}:{self.MONGO_PORT}'
+            f'/{self.MONGO_DB}?authSource={self.MONGO_AUTH_SOURCE}{replica_param}'
+        )
 
 
 Config = ConfigSingleton()

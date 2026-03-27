@@ -5,8 +5,13 @@ Add/remove networks here to control which GAM networks are synced.
 
 NETWORKS = [
     {
-        "network_code": "XXXXXXX",
-        "name": "Network Name",
+        "network_code": "23154379558",
+        "name": "Maturidade",
+        "enabled": True,
+    },
+    {
+        "network_code": "23025038160",
+        "name": "RedePublica",
         "enabled": True,
     },
     # Add more networks as needed

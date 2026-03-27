@@ -314,6 +314,71 @@ Garante que **apenas 1 worker processa uma network por vez**. Isso evita requisi
 | Server selection timeout | 5000ms |
 | TLS | Habilitado |
 
+## Testes
+
+O projeto possui **338 testes** com **99% de cobertura** de codigo. Todas as dependencias externas (MongoDB, Redis, Google Ad Manager SOAP API) sao mockadas via `unittest.mock`.
+
+### Dependencias de Teste
+
+```bash
+pip install -r requirements-test.txt
+```
+
+| Pacote | Uso |
+|--------|-----|
+| `pytest` | Framework de testes |
+| `pytest-cov` | Relatorio de cobertura |
+| `pytest-mock` | Fixtures de mock |
+| `pytest-timeout` | Timeout por teste |
+| `freezegun` | Mock de datas/horarios |
+
+### Execucao
+
+```bash
+# Rodar todos os testes
+pytest tests/
+
+# Rodar com relatorio de cobertura
+pytest tests/ --cov=. --cov-report=term-missing
+
+# Rodar apenas uma categoria (markers: unit, integration, slow)
+pytest tests/ -m unit
+```
+
+### Estrutura dos Testes
+
+A estrutura de `tests/` espelha a estrutura do codigo-fonte:
+
+```
+tests/
+├── conftest.py                  # Fixtures compartilhadas
+├── test_soap_multiprocess.py    # Testes do entrypoint CLI
+├── test_jsonfy.py               # Testes do helper JSON
+├── test_metric_data_dto.py      # Testes do DTO
+├── client/                      # Testes do cliente Redis
+├── config/                      # Testes de configuracao
+├── core/                        # Testes do worker, progress, multiprocess
+├── repositories/                # Testes dos repositorios MongoDB
+├── services/                    # Testes dos servicos (GAM, metricas, processor)
+└── utils/                       # Testes de rate limiter, job manager, retry
+```
+
+### Cobertura
+
+| Modulo | Cobertura |
+|--------|-----------|
+| `config/` | 100% |
+| `core/multiprocess/` | 100% |
+| `services/` | 100% |
+| `repositories/` | 100% |
+| `DTO/` | 100% |
+| `helpers/` | 100% |
+| `utils/` | 100% |
+| `client/` | 100% |
+| `worker.py` | 98% |
+| `soap_multiprocess.py` | 97% |
+| **Total** | **99%** |
+
 ## Dependencias Principais
 
 | Pacote | Versao | Uso |

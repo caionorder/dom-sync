@@ -62,6 +62,12 @@ def main():
 
         print(f"Total de networks para processar: {len(networks)}")
 
+        # Valida parametros obrigatorios para modo run
+        if args.run and not args.type:
+            print("Erro: --type e obrigatorio no modo --run")
+            print("Exemplo: python soap_multiprocess.py --run --type domain")
+            sys.exit(1)
+
         # Se nao esta em modo run, apenas lista as networks
         if not args.run:
             print("\n--- Networks disponiveis ---")
