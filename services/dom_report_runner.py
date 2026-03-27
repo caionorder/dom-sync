@@ -1,5 +1,6 @@
 import re
 import logging
+from pymongo.errors import ConnectionFailure
 from services.gam_service import GamService
 from services.metric_report_service import MetricsReportService
 from services.process_metrics import MetricsProcessor
@@ -65,8 +66,13 @@ def run(network, report_type, day):
 
     # Verifica se ha dados
     if not data or len(data) == 0:
-        logger.warning(f"Nenhum dado retornado para a network {network}")
+        logger.warning(f"[{network}] Nenhum dado retornado do GAM (report_type={report_type}, day={day})")
         return []
+
+    logger.info(f"[{network}] GAM retornou {len(data)} linhas (report_type={report_type})")
+    if data:
+        logger.info(f"[{network}] GAM SAMPLE first record keys: {list(data[0].keys()) if isinstance(data[0], dict) else type(data[0])}")
+        logger.info(f"[{network}] GAM SAMPLE first record: {data[0]}")
 
     # 3. Processar metricas
     metrics_service = MetricsReportService(network)
@@ -76,12 +82,31 @@ def run(network, report_type, day):
     else:
         processed_data = metrics_service.process_utm_campaign_metrics(data)
 
+    logger.info(
+        f"[{network}] Apos processamento: {len(processed_data)} registros "
+        f"(de {len(data)} originais, report_type={report_type})"
+    )
+
+    if not processed_data:
+        logger.warning(
+            f"[{network}] Todos os registros foram filtrados no processamento "
+            f"(report_type={report_type})"
+        )
+        return {'total': 0, 'processed': 0, 'errors': 0}
+
     # 4. Salvar no banco usando o processador
-    processor = MetricsProcessor()
+    try:
+        processor = MetricsProcessor()
+    except ConnectionFailure as e:
+        logger.error(
+            f"[{network}] Falha na conexao com MongoDB ao criar MetricsProcessor: {str(e)[:200]}"
+        )
+        raise
 
     if report_type == "domain":
         stats = processor.process_domain_bulk(processed_data)
     else:
         stats = processor.process_utm_bulk(processed_data)
 
+    logger.info(f"[{network}] Dados salvos com sucesso: {stats}")
     return stats

@@ -25,7 +25,7 @@ class TestRevenueDomainRepositoryInit:
             from repositories.revenue_domain_repository import RevenueDomainRepository
             repo = RevenueDomainRepository()
 
-        assert repo._collection_name == 'dom_revenue_by_domain'
+        assert repo._collection_name == 'DomRevenueByDomain'
 
     def test_init_creates_indexes(self):
         col = make_mock_collection()

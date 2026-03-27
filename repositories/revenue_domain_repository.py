@@ -7,12 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 class RevenueDomainRepository(BaseRepository):
-    """Repositorio para colecao dom_revenue_by_domain"""
+    """Repositorio para colecao DomRevenueByDomain"""
 
     UNIQUE_FIELDS = ['domain', 'network', 'date']
 
     def __init__(self):
-        super().__init__('dom_revenue_by_domain')
+        super().__init__('DomRevenueByDomain')
         self._ensure_indexes()
 
     def _ensure_indexes(self):
@@ -41,11 +41,19 @@ class RevenueDomainRepository(BaseRepository):
 
     def bulk_save_stats(self, stats_list):
         """Salva multiplas estatisticas em bulk"""
+        logger.info(f"bulk_save_stats: received {len(stats_list)} records for collection '{self._collection_name}'")
         try:
             bulk_operations = []
 
-            for data in stats_list:
+            for i, data in enumerate(stats_list):
                 filter_dict = {field: data[field] for field in self.UNIQUE_FIELDS if field in data}
+
+                # Log the first record's filter to verify keys are present
+                if i == 0:
+                    logger.info(f"bulk_save_stats: SAMPLE filter_dict: {filter_dict}")
+                    missing_fields = [f for f in self.UNIQUE_FIELDS if f not in data]
+                    if missing_fields:
+                        logger.warning(f"bulk_save_stats: MISSING unique fields in data: {missing_fields}")
 
                 update_data = data.copy()
                 update_data['updated_at'] = datetime.utcnow()
@@ -59,16 +67,20 @@ class RevenueDomainRepository(BaseRepository):
                     )
                 )
 
+            logger.info(f"bulk_save_stats: executing {len(bulk_operations)} bulk operations")
+
             if bulk_operations:
                 result = self.collection.bulk_write(bulk_operations)
-                return {
+                result_dict = {
                     'matched': result.matched_count,
                     'modified': result.modified_count,
                     'upserted': result.upserted_count
                 }
+                logger.info(f"bulk_save_stats: BulkWriteResult: {result_dict}")
+                return result_dict
 
             return {'matched': 0, 'modified': 0, 'upserted': 0}
 
         except Exception as e:
-            logger.error(f"Erro em bulk_save_stats: {e}")
+            logger.error(f"Erro em bulk_save_stats: {e}", exc_info=True)
             raise

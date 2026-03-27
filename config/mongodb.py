@@ -27,6 +27,11 @@ class MongoDB:
     def get_client(cls):
         if cls._client is None:
             try:
+                # Log connection URI with password redacted for diagnostics
+                import re
+                safe_uri = re.sub(r'://[^:]+:[^@]+@', '://<user>:<redacted>@', MongoDBConfig.MONGODB_URI)
+                logger.info(f"MongoDB connecting to: {safe_uri}")
+
                 cls._client = MongoClient(
                     MongoDBConfig.MONGODB_URI,
                     maxPoolSize=MongoDBConfig.MAX_POOL_SIZE,
@@ -34,8 +39,8 @@ class MongoDB:
                     connectTimeoutMS=MongoDBConfig.CONNECT_TIMEOUT_MS,
                     serverSelectionTimeoutMS=MongoDBConfig.SERVER_SELECTION_TIMEOUT_MS
                 )
-                cls._client.server_info()
-                logger.info("Conectado ao MongoDB com sucesso")
+                server_info = cls._client.server_info()
+                logger.info(f"Conectado ao MongoDB com sucesso (version: {server_info.get('version', 'unknown')})")
             except ConnectionFailure as e:
                 logger.error(f"Erro ao conectar ao MongoDB: {e}")
                 raise

@@ -53,7 +53,7 @@ DOM/
 │       ├── progress.py           # Dashboard e relatorio final
 │       └── logging_config.py
 ├── services/
-│   ├── gam_service.py            # Cliente SOAP GAM (v202511)
+│   ├── gam_service.py            # Cliente SOAP GAM (v202602)
 │   ├── dom_report_runner.py      # Orquestrador extract -> process -> persist
 │   ├── metric_report_service.py  # Agregacao de metricas (total + adx)
 │   └── process_metrics.py        # Bulk processor (chunks de 200)
@@ -136,7 +136,7 @@ Funcoes disponiveis:
 
 ## Collections MongoDB
 
-### `dom_revenue_by_domain`
+### `DomRevenueByDomain`
 
 Armazena metricas agregadas por dominio.
 
@@ -155,7 +155,7 @@ Armazena metricas agregadas por dominio.
 
 **Indice unico:** `(domain, network, date)`
 
-### `dom_revenue_by_utm_campaign`
+### `DomRevenueByUtmCampaign`
 
 Armazena metricas agregadas por UTM campaign.
 

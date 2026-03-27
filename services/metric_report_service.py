@@ -14,36 +14,72 @@ class MetricsReportService:
     def process_domain_metrics(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         Processa metricas de revenue by domain.
-        Agrega total + adx impressions/clicks/revenue e calcula CTR e eCPM.
+        Agrega sub-units (Ad unit 2) por dominio+date, somando impressions/clicks/revenue.
         """
-        result = []
+        logger.info(f"[{self.network}] process_domain_metrics: received {len(items)} items")
+        if items:
+            logger.info(f"[{self.network}] process_domain_metrics: SAMPLE input row: {items[0]}")
+
+        # Agregar por domain+date (GAM retorna linhas separadas por sub-unit)
+        aggregated = {}
+        skipped_empty = 0
+        skipped_dash = 0
 
         for row in items:
             domain = row.get('domain', '')
             if not domain or domain == '-' or domain == '(not set)':
+                if not domain:
+                    skipped_empty += 1
+                else:
+                    skipped_dash += 1
                 continue
 
-            # Agrega metricas total + adx
-            impressions = int(row.get('total_impressions', 0)) + int(row.get('adx_impressions', 0))
-            clicks = int(row.get('total_clicks', 0)) + int(row.get('adx_clicks', 0))
-            revenue = float(row.get('total_revenue', 0)) + float(row.get('adx_revenue', 0))
+            date = row.get('date', '')
+            key = (domain, date)
 
-            # Calcula CTR e eCPM agregados
-            ctr = round((clicks / impressions * 100), 2) if impressions > 0 else 0.0
-            ecpm = round((revenue / impressions * 1000), 2) if impressions > 0 else 0.0
+            impressions = int(row.get('impressions', 0))
+            clicks = int(row.get('clicks', 0))
+            revenue = float(row.get('revenue', 0))
+
+            if key in aggregated:
+                aggregated[key]['impressions'] += impressions
+                aggregated[key]['clicks'] += clicks
+                aggregated[key]['revenue'] += revenue
+            else:
+                aggregated[key] = {
+                    'domain': domain,
+                    'date': date,
+                    'impressions': impressions,
+                    'clicks': clicks,
+                    'revenue': revenue,
+                }
+
+        result = []
+        for (domain, date), data in aggregated.items():
+            imp = data['impressions']
+            clk = data['clicks']
+            rev = data['revenue']
+            ctr = round((clk / imp * 100), 2) if imp > 0 else 0.0
+            ecpm = round((rev / imp * 1000), 6) if imp > 0 else 0.0
 
             metric = MetricDataDTO(
                 domain=domain,
                 network=str(self.network),
-                date=row.get('date', ''),
-                impressions=impressions,
-                clicks=clicks,
+                date=date,
+                impressions=imp,
+                clicks=clk,
                 ctr=ctr,
                 ecpm=ecpm,
-                revenue=round(revenue, 2),
+                revenue=round(rev, 6),
             )
-
             result.append(metric.to_dict())
+
+        logger.info(
+            f"[{self.network}] process_domain_metrics: output {len(result)} records "
+            f"(aggregated from {len(items)}, skipped: {skipped_empty} empty, {skipped_dash} dash/not-set)"
+        )
+        if result:
+            logger.info(f"[{self.network}] process_domain_metrics: SAMPLE output: {result[0]}")
 
         return result
 
@@ -51,42 +87,74 @@ class MetricsReportService:
         """
         Processa metricas de revenue by utm_campaign.
         Filtra apenas items com custom_key = 'utm_campaign'.
+        Agrega sub-units por domain+utm_campaign+date, somando impressions/clicks/revenue.
         """
-        result = []
+        logger.info(f"[{self.network}] process_utm_campaign_metrics: received {len(items)} items")
+
+        # Agregar por domain+utm_campaign+date
+        aggregated = {}
+        skipped = 0
 
         for row in items:
             domain = row.get('domain', '')
             if not domain or domain == '-' or domain == '(not set)':
+                skipped += 1
                 continue
 
-            # Filtra somente utm_campaign key-values
             custom_key = row.get('custom_key', '')
             custom_value = row.get('custom_value', '')
 
             if custom_key != 'utm_campaign' or not custom_value:
+                skipped += 1
                 continue
 
-            # Agrega metricas total + adx
-            impressions = int(row.get('total_impressions', 0)) + int(row.get('adx_impressions', 0))
-            clicks = int(row.get('total_clicks', 0)) + int(row.get('adx_clicks', 0))
-            revenue = float(row.get('total_revenue', 0)) + float(row.get('adx_revenue', 0))
+            date = row.get('date', '')
+            key = (domain, custom_value, date)
 
-            # Calcula CTR e eCPM agregados
-            ctr = round((clicks / impressions * 100), 2) if impressions > 0 else 0.0
-            ecpm = round((revenue / impressions * 1000), 2) if impressions > 0 else 0.0
+            impressions = int(row.get('impressions', 0))
+            clicks = int(row.get('clicks', 0))
+            revenue = float(row.get('revenue', 0))
+
+            if key in aggregated:
+                aggregated[key]['impressions'] += impressions
+                aggregated[key]['clicks'] += clicks
+                aggregated[key]['revenue'] += revenue
+            else:
+                aggregated[key] = {
+                    'domain': domain,
+                    'utm_campaign': custom_value,
+                    'date': date,
+                    'impressions': impressions,
+                    'clicks': clicks,
+                    'revenue': revenue,
+                }
+
+        result = []
+        for (domain, utm_campaign, date), data in aggregated.items():
+            imp = data['impressions']
+            clk = data['clicks']
+            rev = data['revenue']
+            ctr = round((clk / imp * 100), 2) if imp > 0 else 0.0
+            ecpm = round((rev / imp * 1000), 6) if imp > 0 else 0.0
 
             metric = MetricDataDTO(
                 domain=domain,
                 network=str(self.network),
-                date=row.get('date', ''),
-                impressions=impressions,
-                clicks=clicks,
+                date=date,
+                impressions=imp,
+                clicks=clk,
                 ctr=ctr,
                 ecpm=ecpm,
-                revenue=round(revenue, 2),
-                utm_campaign=custom_value,
+                revenue=round(rev, 6),
+                utm_campaign=utm_campaign,
             )
-
             result.append(metric.to_dict())
+
+        logger.info(
+            f"[{self.network}] process_utm_campaign_metrics: output {len(result)} records "
+            f"(aggregated from {len(items)}, skipped: {skipped})"
+        )
+        if result:
+            logger.info(f"[{self.network}] process_utm_campaign_metrics: SAMPLE output: {result[0]}")
 
         return result

@@ -24,7 +24,7 @@ class TestRevenueUtmRepositoryInit:
             from repositories.revenue_utm_repository import RevenueUtmRepository
             repo = RevenueUtmRepository()
 
-        assert repo._collection_name == 'dom_revenue_by_utm_campaign'
+        assert repo._collection_name == 'DomRevenueByUtmCampaign'
 
     def test_init_creates_indexes(self):
         col = make_mock_collection()

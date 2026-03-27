@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class GamService:
     """Cliente SOAP para Google Ad Manager - relatórios DOM"""
 
-    version = "v202511"
+    version = "v202602"
 
     def __init__(self, network_code, report_type=None):
         self.network_code = network_code
@@ -76,13 +76,8 @@ class GamService:
         report_query = {
             "dimensions": ["DATE", "AD_UNIT_NAME"],
             "columns": [
-                "TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS",
-                "TOTAL_LINE_ITEM_LEVEL_CLICKS",
-                "TOTAL_LINE_ITEM_LEVEL_CTR",
-                "TOTAL_LINE_ITEM_LEVEL_CPM_AND_CPC_REVENUE",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_IMPRESSIONS",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_CLICKS",
-                "AD_EXCHANGE_LINE_ITEM_LEVEL_CTR",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM",
             ],
@@ -110,13 +105,8 @@ class GamService:
         report_query = {
             "dimensions": ["DATE", "AD_UNIT_NAME", "CUSTOM_CRITERIA"],
             "columns": [
-                "TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS",
-                "TOTAL_LINE_ITEM_LEVEL_CLICKS",
-                "TOTAL_LINE_ITEM_LEVEL_CTR",
-                "TOTAL_LINE_ITEM_LEVEL_CPM_AND_CPC_REVENUE",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_IMPRESSIONS",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_CLICKS",
-                "AD_EXCHANGE_LINE_ITEM_LEVEL_CTR",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE",
                 "AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM",
             ],
@@ -204,6 +194,12 @@ class GamService:
 
             if len(lines) <= 1:
                 return []
+
+            # TEMPORARY: log raw CSV structure at INFO level for diagnostics
+            logger.info(f"GAM CSV total lines (incl header): {len(lines)}")
+            logger.info(f"GAM CSV header: {lines[0][:500]}")
+            for i, line in enumerate(lines[1:4], start=1):
+                logger.info(f"GAM CSV sample line {i}: {line[:500]}")
 
             response = csvToJson(lines)
             return response

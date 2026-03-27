@@ -1,6 +1,6 @@
 """Tests for helpers/jsonfy.py"""
 import pytest
-from helpers.jsonfy import csvToJson
+from helpers.jsonfy import csvToJson, _build_header_mapping
 
 
 HEADER_LINE = (
@@ -27,6 +27,33 @@ HEADER_WITH_CRITERIA = (
     "Column.AD_EXCHANGE_LINE_ITEM_LEVEL_CTR,"
     "Column.AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE,"
     "Column.AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM"
+)
+
+# Unprefixed headers (newer GAM API versions)
+HEADER_LINE_UNPREFIXED = (
+    "DATE,AD_UNIT_NAME,"
+    "TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS,"
+    "TOTAL_LINE_ITEM_LEVEL_CLICKS,"
+    "TOTAL_LINE_ITEM_LEVEL_CTR,"
+    "TOTAL_LINE_ITEM_LEVEL_CPM_AND_CPC_REVENUE,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_IMPRESSIONS,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_CLICKS,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_CTR,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM"
+)
+
+HEADER_WITH_CRITERIA_UNPREFIXED = (
+    "DATE,AD_UNIT_NAME,CUSTOM_CRITERIA,"
+    "TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS,"
+    "TOTAL_LINE_ITEM_LEVEL_CLICKS,"
+    "TOTAL_LINE_ITEM_LEVEL_CTR,"
+    "TOTAL_LINE_ITEM_LEVEL_CPM_AND_CPC_REVENUE,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_IMPRESSIONS,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_CLICKS,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_CTR,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_REVENUE,"
+    "AD_EXCHANGE_LINE_ITEM_LEVEL_AVERAGE_ECPM"
 )
 
 
@@ -167,3 +194,67 @@ class TestCsvToJsonInvalidNumericValues:
         assert len(result) == 1
         # Fields with invalid values remain as strings
         assert result[0]['total_impressions'] == 'N/A'
+
+
+class TestBuildHeaderMapping:
+    def test_prefixed_headers(self):
+        headers = ["Dimension.DATE", "Dimension.AD_UNIT_NAME", "Column.TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS"]
+        mapping = _build_header_mapping(headers)
+        assert mapping["Dimension.DATE"] == "date"
+        assert mapping["Dimension.AD_UNIT_NAME"] == "domain"
+        assert mapping["Column.TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS"] == "total_impressions"
+
+    def test_unprefixed_headers(self):
+        headers = ["DATE", "AD_UNIT_NAME", "TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS"]
+        mapping = _build_header_mapping(headers)
+        assert mapping["DATE"] == "date"
+        assert mapping["AD_UNIT_NAME"] == "domain"
+        assert mapping["TOTAL_LINE_ITEM_LEVEL_IMPRESSIONS"] == "total_impressions"
+
+    def test_custom_criteria_unprefixed(self):
+        headers = ["CUSTOM_CRITERIA"]
+        mapping = _build_header_mapping(headers)
+        assert mapping["CUSTOM_CRITERIA"] == "custom_criteria"
+
+    def test_unknown_headers_ignored(self):
+        headers = ["DATE", "UNKNOWN_COLUMN", "AD_UNIT_NAME"]
+        mapping = _build_header_mapping(headers)
+        assert "UNKNOWN_COLUMN" not in mapping
+        assert len(mapping) == 2
+
+
+class TestCsvToJsonUnprefixedHeaders:
+    """Tests for GAM CSV_DUMP with unprefixed column headers (newer API versions)."""
+
+    def test_basic_row_unprefixed_headers(self):
+        data_line = "2024-01-15,example.com,1000,50,0.05,2500000,500,10,0.02,1000000,2000000"
+        lines = [HEADER_LINE_UNPREFIXED, data_line]
+        result = csvToJson(lines)
+        assert len(result) == 1
+        assert result[0]['date'] == '2024-01-15'
+        assert result[0]['domain'] == 'example.com'
+        assert result[0]['total_impressions'] == 1000
+
+    def test_custom_criteria_unprefixed_headers(self):
+        data_line = "2024-01-15,example.com,utm_campaign=summer_sale,1000,50,0.05,2500000,500,10,0.02,1000000,2000000"
+        lines = [HEADER_WITH_CRITERIA_UNPREFIXED, data_line]
+        result = csvToJson(lines)
+        assert result[0]['custom_key'] == 'utm_campaign'
+        assert result[0]['custom_value'] == 'summer_sale'
+        assert 'custom_criteria' not in result[0]
+
+    def test_micro_fields_unprefixed_headers(self):
+        data_line = "2024-01-15,example.com,1000,50,0.05,2500000,500,10,0.02,1000000,2000000"
+        lines = [HEADER_LINE_UNPREFIXED, data_line]
+        result = csvToJson(lines)
+        assert result[0]['total_revenue'] == 2.5
+        assert result[0]['adx_revenue'] == 1.0
+        assert result[0]['adx_ecpm'] == 2.0
+
+    def test_custom_criteria_with_spaces_around_equals(self):
+        """GAM may return custom_criteria with spaces around the equals sign."""
+        data_line = "2024-01-15,example.com,utm_campaign = summer_sale,1000,50,0.05,2500000,500,10,0.02,1000000,2000000"
+        lines = [HEADER_WITH_CRITERIA_UNPREFIXED, data_line]
+        result = csvToJson(lines)
+        assert result[0]['custom_key'] == 'utm_campaign'
+        assert result[0]['custom_value'] == 'summer_sale'
