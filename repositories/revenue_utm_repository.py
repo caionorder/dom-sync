@@ -31,8 +31,19 @@ class RevenueUtmRepository(BaseRepository):
         except Exception as e:
             logger.debug(f"Indice ja existe ou erro ao criar: {e}")
 
+    def _parse_utm(self, utm_campaign):
+        """Extrai utmBase e source do utm_campaign pelo ultimo _"""
+        if utm_campaign and '_' in utm_campaign:
+            base, source = utm_campaign.rsplit('_', 1)
+            return base, source
+        return utm_campaign, None
+
     def save_daily_stats(self, stats_data):
         """Salva estatisticas diarias usando updateOrCreate"""
+        base, source = self._parse_utm(stats_data.get('utm_campaign'))
+        stats_data['utmBase'] = base
+        stats_data['source'] = source
+
         search_criteria = {
             'domain': stats_data.get('domain'),
             'network': stats_data.get('network'),
@@ -47,6 +58,10 @@ class RevenueUtmRepository(BaseRepository):
             bulk_operations = []
 
             for data in stats_list:
+                base, source = self._parse_utm(data.get('utm_campaign'))
+                data['utmBase'] = base
+                data['source'] = source
+
                 filter_dict = {field: data[field] for field in self.UNIQUE_FIELDS if field in data}
 
                 update_data = data.copy()
